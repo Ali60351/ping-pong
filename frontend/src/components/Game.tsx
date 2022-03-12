@@ -9,6 +9,7 @@ import InputHandler from './InputHandler';
 import gameSelector from '../reducers/gameSelector';
 import { updateGameState } from '../reducers/gameReducer';
 import { VALID_KEYS } from '../constants';
+import styles from './Game.module.css';
 
 const Game = () => {
     const dispatch = useDispatch();
@@ -50,13 +51,20 @@ const Game = () => {
         }
     }, []);
 
-    return <Canvas camera={{ fov: 90, near: 0.1, far: 1000, position: [0, 0, 300] }}>
-        { socket.readyState === 1 && <InputHandler socket={socket} /> }
-        <ambientLight />
-        <Paddle position={[-340, playerOneY, 0]} />
-        <Paddle position={[340, playerTwoY, 0]} />
-        <Ball position={[...ballPosition, 0]} />
-    </Canvas>;
+    return <div className={styles.container}>
+        <div className={styles.status}>
+            <span>Player 1</span>
+        </div>
+        <div className={styles.canvasContainer}>
+            <Canvas camera={{ fov: 90, near: 0.1, far: 1000, position: [0, 0, 300] }}>
+            { socket.readyState === 1 && <InputHandler socket={socket} /> }
+            <ambientLight />
+            <Paddle position={[-340, playerOneY, 0]} />
+            <Paddle position={[340, playerTwoY, 0]} />
+            <Ball position={[...ballPosition, 0]} />
+        </Canvas>
+        </div>
+    </div>;
 };
 
 export default Game;

@@ -10,19 +10,7 @@ import store from './store'
 
 ReactDOM.render(
   <Provider store={store}>
-    <div
-      style={{
-        position: "relative",
-        width: "800px",
-        height: "600px",
-        backgroundColor: "#222",
-        display: "flex",
-        justifyContent: "center",
-        border: "15px solid #333"
-      }}
-    >
-      <Game />
-    </div>
+    <Game />
   </Provider>,
   document.getElementById('root'),
 )
