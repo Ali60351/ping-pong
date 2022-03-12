@@ -35,6 +35,8 @@ const (
 	windowHeight = 600
 )
 
+var connection *websocket.Conn
+
 // NewGame creates an initializes a new game
 func NewGame() *Game {
 	g := &Game{}
@@ -173,6 +175,14 @@ func (g *Game) Draw(screen *ebiten.Image) error {
 	g.player2.Draw(screen, pong.ArcadeFont)
 	g.ball.Draw(screen)
 
+	if connection != nil {
+		connection.WriteJSON(&fiber.Map{
+			"playerOne": 300 - int(g.player1.Y),
+			"playerTwo": 300 - int(g.player2.Y),
+			"ball":      [2]int{int(g.ball.X) - 380, 300 - int(g.ball.Y)},
+		})
+	}
+
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()))
 
 	return nil
@@ -183,15 +193,16 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return windowWidth, windowHeight
 }
 
-func main() {
+func launchGame() {
 	g := NewGame()
 
 	if err := ebiten.RunGame(g); err != nil {
 		panic(err)
 	}
+}
 
+func runServer() {
 	app := fiber.New()
-	var connection *websocket.Conn
 
 	app.Use("/ws", func(c *fiber.Ctx) error {
 		// IsWebSocketUpgrade returns true if the client
@@ -203,13 +214,13 @@ func main() {
 		return fiber.ErrUpgradeRequired
 	})
 
-	app.Get("/connect", func(c *fiber.Ctx) error {
-		connection.WriteJSON(&fiber.Map{
-			"status": "ready",
-		})
+	// app.Get("/connect", func(c *fiber.Ctx) error {
+	// 	connection.WriteJSON(&fiber.Map{
+	// 		"status": "ready",
+	// 	})
 
-		return c.SendString("Done!")
-	})
+	// 	return c.SendString("Done!")
+	// })
 
 	app.Get("/game", websocket.New(func(c *websocket.Conn) {
 		// c.Locals is added to the *websocket.Conn
@@ -244,4 +255,9 @@ func main() {
 	log.Fatal(app.Listen(":8000"))
 	// Access the websocket server: ws://localhost:3000/ws/123?v=1.0
 	// https://www.websocket.org/echo.html
+}
+
+func main() {
+	go runServer()
+	launchGame()
 }
