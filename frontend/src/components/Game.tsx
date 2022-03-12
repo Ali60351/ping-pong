@@ -52,6 +52,8 @@ const Game = () => {
             } else if (data.type === 'FRAME') {
                 const { playerOne, playerTwo, ball, score } = data;
                 dispatch(updateGameState({ playerOne, playerTwo, ball, score }));
+            } else if (data.type === 'STATUS') {
+                dispatch(updateStatus(data.message));
             }
         });
 

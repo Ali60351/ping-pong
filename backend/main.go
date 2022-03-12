@@ -92,7 +92,7 @@ func (g *Game) init() {
 	pong.InitFonts()
 }
 
-func (g *Game) reset() {
+func (g *Game) reset(updatePlayer bool) {
 	g.state = pong.StartState
 	g.rally = 0
 	g.level = 0
@@ -116,6 +116,18 @@ func (g *Game) reset() {
 
 	g.ball.XVelocity = initBallVelocity
 	g.ball.YVelocity = initBallVelocity
+
+	if updatePlayer && playerOneConn != nil && playerOneConn.Conn != nil && playerTwoConn != nil && playerTwoConn.Conn != nil {
+		playerOneConn.WriteJSON(&fiber.Map{
+			"type":    "STATUS",
+			"message": "Press SPACE to continue",
+		})
+
+		playerTwoConn.WriteJSON(&fiber.Map{
+			"type":    "STATUS",
+			"message": "Press SPACE to continue",
+		})
+	}
 }
 
 // Update updates the game state
@@ -155,19 +167,31 @@ func (g *Game) Update(screen *ebiten.Image) error {
 
 		if g.ball.X < 0 {
 			g.Player2.Score++
-			g.reset()
+			g.reset(true)
 		} else if g.ball.X > float32(w) {
 			g.Player1.Score++
-			g.reset()
+			g.reset(true)
 		}
 
 		if g.Player1.Score == g.maxScore || g.Player2.Score == g.maxScore {
 			g.state = pong.GameOverState
+
+			if playerOneConn != nil && playerOneConn.Conn != nil && playerTwoConn != nil && playerTwoConn.Conn != nil {
+				playerOneConn.WriteJSON(&fiber.Map{
+					"type":    "STATUS",
+					"message": "Game Over!",
+				})
+
+				playerTwoConn.WriteJSON(&fiber.Map{
+					"type":    "STATUS",
+					"message": "Game Over!",
+				})
+			}
 		}
 
 	case pong.GameOverState:
 		if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-			g.reset()
+			g.reset(false)
 		}
 	}
 
@@ -190,6 +214,10 @@ func cleanup(player string) {
 
 // Draw updates the game screen elements drawn
 func (g *Game) Draw(screen *ebiten.Image) error {
+	if g.state != pong.PlayState {
+		return nil
+	}
+
 	if playerOneConn != nil && playerOneConn.Conn != nil && playerTwoConn != nil && playerTwoConn.Conn != nil {
 		playerOneConn.WriteJSON(&fiber.Map{
 			"type":      "FRAME",
@@ -293,7 +321,7 @@ func runServer() {
 			if mt, msg, err = c.ReadMessage(); err != nil {
 				log.Println("read:", err)
 				cleanup(player)
-				gameState.reset()
+				gameState.reset(false)
 				break
 			}
 
@@ -303,7 +331,7 @@ func runServer() {
 			switch string(msg) {
 			case "SPACE":
 				if gameState.state == pong.StartState || gameState.state == pong.GameOverState {
-					gameState.reset()
+					gameState.reset(false)
 					gameState.state = pong.PlayState
 				}
 			case "P1_UP_SET":
