@@ -18,3 +18,5 @@ export const CODES: { [key in AcceptedKeys]: KeyCodes } = {
     'ArrowDown': 'P2_DOWN',
     ' ': 'SPACE',
 }
+
+export const READY_MESSAGE = 'Press SPACE to start!';

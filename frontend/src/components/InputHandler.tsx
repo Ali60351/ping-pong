@@ -1,13 +1,23 @@
-import { useEffect } from 'react';
-import { CODES } from '../constants';
+import { useEffect, useMemo } from 'react';
+import { CODES, KEYS } from '../constants';
 import { isSupportedKey } from '../utils';
 
 interface InputHandlerProps {
-    socket: WebSocket
+    socket: WebSocket,
+    player: 'ONE' | 'TWO',
 }
 
 const InputHandler = (props: InputHandlerProps) => {
-    const { socket } = props;
+    const { socket, player } = props;
+
+    const directionalKeys = useMemo(() => {
+        const directionalKeysMap = {
+            ONE: [KEYS.P1_UP, KEYS.P1_DOWN],
+            TWO: [KEYS.P2_UP, KEYS.P2_DOWN],
+        };
+
+        return directionalKeysMap[player]
+    }, [player]);
 
     useEffect(() => {
         const keyDownListener = (e: KeyboardEvent) => {
@@ -19,7 +29,7 @@ const InputHandler = (props: InputHandlerProps) => {
 
             if (inputKey === ' ') {
                 socket.send(CODES[inputKey])
-            } else {
+            } else if (directionalKeys.includes(inputKey)) {
                 socket.send(`${CODES[inputKey]}_SET`)
             }
         };
@@ -31,7 +41,7 @@ const InputHandler = (props: InputHandlerProps) => {
                 return;
             }
 
-            if (inputKey !== ' ') {
+            if (inputKey !== ' ' && directionalKeys.includes(inputKey)) {
                 socket.send(`${CODES[inputKey]}_UNSET`)
             }
         };
@@ -41,8 +51,9 @@ const InputHandler = (props: InputHandlerProps) => {
 
         return () => {
             document.removeEventListener("keydown", keyDownListener);
+            document.addEventListener("keyup", keyUpListener);
         }
-    }, [socket]);
+    }, [directionalKeys, socket]);
 
     return null;
 };

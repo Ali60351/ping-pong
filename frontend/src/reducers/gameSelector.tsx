@@ -7,6 +7,8 @@ const gameSelector = createSelector(
         playerOneY: state.playerOne,
         playerTwoY: state.playerTwo,
         ballPosition: state.ball,
+        score: state.score,
+        status: state.status
     })
   )
 

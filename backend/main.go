@@ -33,8 +33,12 @@ const (
 	windowHeight = 600
 )
 
-var connection *websocket.Conn
+var playerOneConn *websocket.Conn
+var playerTwoConn *websocket.Conn
+
 var gameState *Game
+
+var playerCount int = 0
 
 // NewGame creates an initializes a new game
 func NewGame() *Game {
@@ -88,20 +92,28 @@ func (g *Game) init() {
 	pong.InitFonts()
 }
 
-func (g *Game) reset(screen *ebiten.Image, state pong.GameState) {
-	w, _ := screen.Size()
-	g.state = state
+func (g *Game) reset() {
+	g.state = pong.StartState
 	g.rally = 0
 	g.level = 0
-	if state == pong.StartState {
-		g.Player1.Score = 0
-		g.Player2.Score = 0
-	}
+	g.Player1.Score = 0
+	g.Player2.Score = 0
+
 	g.Player1.Position = pong.Position{
-		X: pong.InitPaddleShift, Y: pong.GetCenter(screen).Y}
+		X: pong.InitPaddleShift,
+		Y: float32(windowHeight / 2),
+	}
+
 	g.Player2.Position = pong.Position{
-		X: float32(w - pong.InitPaddleShift - pong.InitPaddleWidth), Y: pong.GetCenter(screen).Y}
-	g.ball.Position = pong.GetCenter(screen)
+		X: windowWidth - pong.InitPaddleShift - pong.InitPaddleWidth,
+		Y: float32(windowHeight / 2),
+	}
+
+	g.ball.Position = pong.Position{
+		X: float32(windowWidth / 2),
+		Y: float32(windowHeight / 2),
+	}
+
 	g.ball.XVelocity = initBallVelocity
 	g.ball.YVelocity = initBallVelocity
 }
@@ -143,10 +155,10 @@ func (g *Game) Update(screen *ebiten.Image) error {
 
 		if g.ball.X < 0 {
 			g.Player2.Score++
-			g.reset(screen, pong.StartState)
+			g.reset()
 		} else if g.ball.X > float32(w) {
 			g.Player1.Score++
-			g.reset(screen, pong.StartState)
+			g.reset()
 		}
 
 		if g.Player1.Score == g.maxScore || g.Player2.Score == g.maxScore {
@@ -155,7 +167,7 @@ func (g *Game) Update(screen *ebiten.Image) error {
 
 	case pong.GameOverState:
 		if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-			g.reset(screen, pong.StartState)
+			g.reset()
 		}
 	}
 
@@ -164,25 +176,38 @@ func (g *Game) Update(screen *ebiten.Image) error {
 	return nil
 }
 
+func cleanup(player string) {
+	if player == "ONE" && playerTwoConn != nil {
+		playerTwoConn.Close()
+	} else if playerOneConn != nil {
+		playerOneConn.Close()
+	}
+
+	playerOneConn = nil
+	playerTwoConn = nil
+	playerCount = 0
+}
+
 // Draw updates the game screen elements drawn
 func (g *Game) Draw(screen *ebiten.Image) error {
-	// screen.Fill(pong.BgColor)
 
-	// pong.DrawCaption(g.state, pong.ObjColor, screen)
-	// pong.DrawBigText(g.state, pong.ObjColor, screen)
-	// g.player1.Draw(screen, pong.ArcadeFont)
-	// g.player2.Draw(screen, pong.ArcadeFont)
-	// g.ball.Draw(screen)
-
-	if connection != nil {
-		connection.WriteJSON(&fiber.Map{
+	if playerOneConn != nil && playerTwoConn != nil {
+		playerOneConn.WriteJSON(&fiber.Map{
+			"type":      "FRAME",
 			"playerOne": 300 - int(g.Player1.Y),
 			"playerTwo": 300 - int(g.Player2.Y),
 			"ball":      [2]int{int(g.ball.X) - 390, 300 - int(g.ball.Y)},
+			"score":     g.Player1.Score,
+		})
+
+		playerTwoConn.WriteJSON(&fiber.Map{
+			"type":      "FRAME",
+			"playerOne": 300 - int(g.Player1.Y),
+			"playerTwo": 300 - int(g.Player2.Y),
+			"ball":      [2]int{int(g.ball.X) - 390, 300 - int(g.ball.Y)},
+			"score":     g.Player2.Score,
 		})
 	}
-
-	// ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()))
 
 	return nil
 }
@@ -231,7 +256,33 @@ func runServer() {
 		log.Println(c.Query("v"))         // 1.0
 		log.Println(c.Cookies("session")) // ""
 
-		connection = c
+		var player string
+
+		if playerCount == 0 {
+			player = "ONE"
+			playerOneConn = c
+		} else if playerCount == 1 {
+			player = "TWO"
+			playerTwoConn = c
+		} else {
+			c.Close()
+		}
+
+		playerCount += 1
+
+		c.WriteJSON(&fiber.Map{
+			"type":        "INIT",
+			"playerCount": playerCount,
+		})
+
+		if playerCount == 2 {
+			readyStatusData := &fiber.Map{
+				"type": "READY",
+			}
+
+			playerOneConn.WriteJSON(readyStatusData)
+			playerTwoConn.WriteJSON(readyStatusData)
+		}
 
 		// websocket.Conn bindings https://pkg.go.dev/github.com/fasthttp/websocket?tab=doc#pkg-index
 		var (
@@ -242,6 +293,11 @@ func runServer() {
 		for {
 			if mt, msg, err = c.ReadMessage(); err != nil {
 				log.Println("read:", err)
+
+				if websocket.IsCloseError(err) {
+					cleanup(player)
+				}
+
 				break
 			}
 
@@ -250,7 +306,10 @@ func runServer() {
 
 			switch string(msg) {
 			case "SPACE":
-				gameState.state = pong.PlayState
+				if gameState.state == pong.StartState || gameState.state == pong.GameOverState {
+					gameState.reset()
+					gameState.state = pong.PlayState
+				}
 			case "P1_UP_SET":
 				gameState.Player1.Pressed.Up = true
 				gameState.Player1.Pressed.Down = false

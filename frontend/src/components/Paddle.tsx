@@ -1,25 +1,18 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 
-const Paddle = (props: JSX.IntrinsicElements['mesh']) => {
+type PaddleProps = JSX.IntrinsicElements['mesh'] & { isPlayer: boolean }
+
+const Paddle = (props: PaddleProps) => {
     const ref = useRef<THREE.Mesh>(null!)
-    const [hovered, hover] = useState(false)
-    const [clicked, click] = useState(false)
-
-    // useFrame((state, delta) => {
-    //   ref.current.rotation.x += 0.01
-    //   ref.current.rotation.y += 0.01
-    // })
+    const { isPlayer, ...rest } = props;
 
     return (
       <mesh
-        {...props}
+        {...rest}
         ref={ref}
-        // scale={clicked ? 1.5 : 1}
-        onClick={(event) => click(!clicked)}
-        onPointerOver={(event) => hover(true)}
-        onPointerOut={(event) => hover(false)}>
+      >
         <boxGeometry args={[20, 100, 0]} />
-        <meshStandardMaterial color={hovered ? 'aqua' : 'white'} />
+        <meshStandardMaterial color={isPlayer ? 'yellow' : 'white'} />
       </mesh>
     )
 };
