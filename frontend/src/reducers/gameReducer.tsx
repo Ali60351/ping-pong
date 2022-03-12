@@ -9,7 +9,7 @@ export interface GameState {
 const initialState: GameState = {
     playerOne: 0,
     playerTwo: 0,
-    ball: [0, 0]
+    ball: [10, 0]
 };
 
 const gameSlice = createSlice({

@@ -1,13 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/inpututil"
 	"github.com/jtestard/go-pong/pong"
 )
@@ -167,23 +165,23 @@ func (g *Game) Update(screen *ebiten.Image) error {
 
 // Draw updates the game screen elements drawn
 func (g *Game) Draw(screen *ebiten.Image) error {
-	screen.Fill(pong.BgColor)
+	// screen.Fill(pong.BgColor)
 
-	pong.DrawCaption(g.state, pong.ObjColor, screen)
-	pong.DrawBigText(g.state, pong.ObjColor, screen)
-	g.player1.Draw(screen, pong.ArcadeFont)
-	g.player2.Draw(screen, pong.ArcadeFont)
-	g.ball.Draw(screen)
+	// pong.DrawCaption(g.state, pong.ObjColor, screen)
+	// pong.DrawBigText(g.state, pong.ObjColor, screen)
+	// g.player1.Draw(screen, pong.ArcadeFont)
+	// g.player2.Draw(screen, pong.ArcadeFont)
+	// g.ball.Draw(screen)
 
 	if connection != nil {
 		connection.WriteJSON(&fiber.Map{
 			"playerOne": 300 - int(g.player1.Y),
 			"playerTwo": 300 - int(g.player2.Y),
-			"ball":      [2]int{int(g.ball.X) - 380, 300 - int(g.ball.Y)},
+			"ball":      [2]int{int(g.ball.X) - 390, 300 - int(g.ball.Y)},
 		})
 	}
 
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()))
+	// ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()))
 
 	return nil
 }
@@ -195,6 +193,9 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func launchGame() {
 	g := NewGame()
+
+	ebiten.SetMaxTPS(30)
+	ebiten.SetRunnableOnUnfocused(true)
 
 	if err := ebiten.RunGame(g); err != nil {
 		panic(err)

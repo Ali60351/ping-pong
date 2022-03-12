@@ -18,7 +18,7 @@ const Ball = (props: JSX.IntrinsicElements['mesh']) => {
         onClick={(event) => click(!clicked)}
         onPointerOver={(event) => hover(true)}
         onPointerOut={(event) => hover(false)}>
-        <boxGeometry args={[20, 20, 0]} />
+        <circleGeometry args={[10]} />
         <meshStandardMaterial color={hovered ? 'aqua' : 'white'} />
       </mesh>
     )
