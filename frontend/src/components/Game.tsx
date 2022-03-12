@@ -1,39 +1,57 @@
-import React, { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Canvas } from '@react-three/fiber'
 import { useSelector, useDispatch } from 'react-redux';
 
 import Paddle from './Paddle';
 import Ball from './Ball';
+import InputHandler from './InputHandler';
+
 import gameSelector from '../reducers/gameSelector';
 import { updateGameState } from '../reducers/gameReducer';
+import { VALID_KEYS } from '../constants';
 
 const Game = () => {
     const dispatch = useDispatch();
     const gameState = useSelector(gameSelector);
 
+    const socket = useMemo(() => {
+        const ws = new WebSocket('ws://localhost:8000/game');
+
+        ws.addEventListener('open', () => {
+            // document.addEventListener("keypress", e => {
+            //     console.log(e);
+            // });
+        });
+
+        ws.addEventListener('message', function (event) {
+            const data = JSON.parse(event.data);
+            const { playerOne, playerTwo, ball } = data;
+            dispatch(updateGameState({ playerOne, playerTwo, ball }));
+        });
+
+        return ws;
+    }, [dispatch]);
+
     const { playerOneY, playerTwoY, ballPosition } = gameState;
 
     useEffect(() => {
-        const socket = new WebSocket('ws://localhost:8000/game');
+        const keyPressHandler = (e: KeyboardEvent) => {
+            if (!VALID_KEYS.includes(e.key)) {
+                return;
+            }
 
-        socket.addEventListener('open', function (event) {
-            // socket.send('50');
-        });
+            console.log(e);
+        };
 
-        socket.addEventListener('message', function (event) {
-            const data = JSON.parse(event.data);
+        document.addEventListener("keydown", keyPressHandler);
 
-            const {
-                playerOne = playerOneY,
-                playerTwo = playerTwoY,
-                ball = ballPosition
-            } = data;
-
-            dispatch(updateGameState({ playerOne, playerTwo, ball }));
-        });
-    }, [dispatch, playerOneY, playerTwoY, ballPosition]);
+        return () => {
+            document.removeEventListener("keydown", keyPressHandler);
+        }
+    }, []);
 
     return <Canvas camera={{ fov: 90, near: 0.1, far: 1000, position: [0, 0, 300] }}>
+        { socket.readyState === 1 && <InputHandler socket={socket} /> }
         <ambientLight />
         <Paddle position={[-340, playerOneY, 0]} />
         <Paddle position={[340, playerTwoY, 0]} />

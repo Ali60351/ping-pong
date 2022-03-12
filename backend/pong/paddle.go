@@ -1,12 +1,13 @@
 package pong
 
 import (
+	"image/color"
+	"strconv"
+
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/inpututil"
 	"github.com/hajimehoshi/ebiten/text"
 	"golang.org/x/image/font"
-	"image/color"
-	"strconv"
 )
 
 // Paddle is a pong paddle
@@ -20,7 +21,7 @@ type Paddle struct {
 	Up           ebiten.Key
 	Down         ebiten.Key
 	Img          *ebiten.Image
-	pressed      keysPressed
+	Pressed      keysPressed
 	scorePrinted scorePrinted
 }
 
@@ -31,8 +32,8 @@ const (
 )
 
 type keysPressed struct {
-	up   bool
-	down bool
+	Up   bool
+	Down bool
 }
 
 type scorePrinted struct {
@@ -46,21 +47,21 @@ func (p *Paddle) Update(screen *ebiten.Image) {
 	_, h := screen.Size()
 
 	if inpututil.IsKeyJustPressed(p.Up) {
-		p.pressed.down = false
-		p.pressed.up = true
+		p.Pressed.Down = false
+		p.Pressed.Up = true
 	} else if inpututil.IsKeyJustReleased(p.Up) || !ebiten.IsKeyPressed(p.Up) {
-		p.pressed.up = false
+		p.Pressed.Up = false
 	}
 	if inpututil.IsKeyJustPressed(p.Down) {
-		p.pressed.up = false
-		p.pressed.down = true
+		p.Pressed.Up = false
+		p.Pressed.Down = true
 	} else if inpututil.IsKeyJustReleased(p.Down) || !ebiten.IsKeyPressed(p.Down) {
-		p.pressed.down = false
+		p.Pressed.Down = false
 	}
 
-	if p.pressed.up {
+	if p.Pressed.Up {
 		p.Y -= p.Speed
-	} else if p.pressed.down {
+	} else if p.Pressed.Down {
 		p.Y += p.Speed
 	}
 

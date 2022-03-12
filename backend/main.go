@@ -14,8 +14,8 @@ import (
 type Game struct {
 	state    pong.GameState
 	ball     *pong.Ball
-	player1  *pong.Paddle
-	player2  *pong.Paddle
+	Player1  *pong.Paddle
+	Player2  *pong.Paddle
 	rally    int
 	level    int
 	maxScore int
@@ -34,6 +34,7 @@ const (
 )
 
 var connection *websocket.Conn
+var gameState *Game
 
 // NewGame creates an initializes a new game
 func NewGame() *Game {
@@ -46,7 +47,7 @@ func (g *Game) init() {
 	g.state = pong.StartState
 	g.maxScore = 11
 
-	g.player1 = &pong.Paddle{
+	g.Player1 = &pong.Paddle{
 		Position: pong.Position{
 			X: pong.InitPaddleShift,
 			Y: float32(windowHeight / 2)},
@@ -58,7 +59,7 @@ func (g *Game) init() {
 		Up:     ebiten.KeyUp,
 		Down:   ebiten.KeyDown,
 	}
-	g.player2 = &pong.Paddle{
+	g.Player2 = &pong.Paddle{
 		Position: pong.Position{
 			X: windowWidth - pong.InitPaddleShift - pong.InitPaddleWidth,
 			Y: float32(windowHeight / 2)},
@@ -81,8 +82,8 @@ func (g *Game) init() {
 	}
 	g.level = 0
 	g.ball.Img, _ = ebiten.NewImage(int(g.ball.Radius*2), int(g.ball.Radius*2), ebiten.FilterDefault)
-	g.player1.Img, _ = ebiten.NewImage(g.player1.Width, g.player1.Height, ebiten.FilterDefault)
-	g.player2.Img, _ = ebiten.NewImage(g.player2.Width, g.player2.Height, ebiten.FilterDefault)
+	g.Player1.Img, _ = ebiten.NewImage(g.Player1.Width, g.Player1.Height, ebiten.FilterDefault)
+	g.Player2.Img, _ = ebiten.NewImage(g.Player2.Width, g.Player2.Height, ebiten.FilterDefault)
 
 	pong.InitFonts()
 }
@@ -93,12 +94,12 @@ func (g *Game) reset(screen *ebiten.Image, state pong.GameState) {
 	g.rally = 0
 	g.level = 0
 	if state == pong.StartState {
-		g.player1.Score = 0
-		g.player2.Score = 0
+		g.Player1.Score = 0
+		g.Player2.Score = 0
 	}
-	g.player1.Position = pong.Position{
+	g.Player1.Position = pong.Position{
 		X: pong.InitPaddleShift, Y: pong.GetCenter(screen).Y}
-	g.player2.Position = pong.Position{
+	g.Player2.Position = pong.Position{
 		X: float32(w - pong.InitPaddleShift - pong.InitPaddleWidth), Y: pong.GetCenter(screen).Y}
 	g.ball.Position = pong.GetCenter(screen)
 	g.ball.XVelocity = initBallVelocity
@@ -116,16 +117,16 @@ func (g *Game) Update(screen *ebiten.Image) error {
 	case pong.PlayState:
 		w, _ := screen.Size()
 
-		g.player1.Update(screen)
-		g.player2.Update(screen)
+		g.Player1.Update(screen)
+		g.Player2.Update(screen)
 
 		xV := g.ball.XVelocity
-		g.ball.Update(g.player1, g.player2, screen)
+		g.ball.Update(g.Player1, g.Player2, screen)
 		// rally count
 		if xV*g.ball.XVelocity < 0 {
 			// score up when ball touches human player's paddle
 			if g.ball.X < float32(w/2) {
-				g.player1.Score++
+				g.Player1.Score++
 			}
 
 			g.rally++
@@ -135,20 +136,20 @@ func (g *Game) Update(screen *ebiten.Image) error {
 				g.level++
 				g.ball.XVelocity += speedIncrement
 				g.ball.YVelocity += speedIncrement
-				g.player1.Speed += speedIncrement
-				g.player2.Speed += speedIncrement
+				g.Player1.Speed += speedIncrement
+				g.Player2.Speed += speedIncrement
 			}
 		}
 
 		if g.ball.X < 0 {
-			g.player2.Score++
+			g.Player2.Score++
 			g.reset(screen, pong.StartState)
 		} else if g.ball.X > float32(w) {
-			g.player1.Score++
+			g.Player1.Score++
 			g.reset(screen, pong.StartState)
 		}
 
-		if g.player1.Score == g.maxScore || g.player2.Score == g.maxScore {
+		if g.Player1.Score == g.maxScore || g.Player2.Score == g.maxScore {
 			g.state = pong.GameOverState
 		}
 
@@ -175,8 +176,8 @@ func (g *Game) Draw(screen *ebiten.Image) error {
 
 	if connection != nil {
 		connection.WriteJSON(&fiber.Map{
-			"playerOne": 300 - int(g.player1.Y),
-			"playerTwo": 300 - int(g.player2.Y),
+			"playerOne": 300 - int(g.Player1.Y),
+			"playerTwo": 300 - int(g.Player2.Y),
 			"ball":      [2]int{int(g.ball.X) - 390, 300 - int(g.ball.Y)},
 		})
 	}
@@ -192,12 +193,12 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func launchGame() {
-	g := NewGame()
+	gameState = NewGame()
 
 	ebiten.SetMaxTPS(30)
 	ebiten.SetRunnableOnUnfocused(true)
 
-	if err := ebiten.RunGame(g); err != nil {
+	if err := ebiten.RunGame(gameState); err != nil {
 		panic(err)
 	}
 }
@@ -243,19 +244,46 @@ func runServer() {
 				log.Println("read:", err)
 				break
 			}
+
+			log.Print(mt)
 			log.Printf("recv: %s", msg)
 
-			if err = c.WriteMessage(mt, msg); err != nil {
-				log.Println("write:", err)
-				break
+			switch string(msg) {
+			case "SPACE":
+				gameState.state = pong.PlayState
+			case "P1_UP_SET":
+				gameState.Player1.Pressed.Up = true
+				gameState.Player1.Pressed.Down = false
+			case "P1_UP_UNSET":
+				gameState.Player1.Pressed.Up = false
+			case "P1_DOWN_SET":
+				gameState.Player1.Pressed.Up = false
+				gameState.Player1.Pressed.Down = true
+			case "P1_DOWN_UNSET":
+				gameState.Player1.Pressed.Down = false
+			case "P2_UP_SET":
+				gameState.Player2.Pressed.Up = true
+				gameState.Player2.Pressed.Down = false
+			case "P2_UP_UNSET":
+				gameState.Player2.Pressed.Up = false
+			case "P2_DOWN_SET":
+				gameState.Player2.Pressed.Up = false
+				gameState.Player2.Pressed.Down = true
+			case "P2_DOWN_UNSET":
+				gameState.Player2.Pressed.Down = false
+			default:
+				log.Printf("Unhandled message: %s", msg)
 			}
+
+			// if err = c.WriteMessage(mt, msg); err != nil {
+			// 	log.Println("write:", err)
+			// 	break
+			// }
 		}
 
 	}))
 
 	log.Fatal(app.Listen(":8000"))
-	// Access the websocket server: ws://localhost:3000/ws/123?v=1.0
-	// https://www.websocket.org/echo.html
 }
 
 func main() {
