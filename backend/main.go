@@ -178,9 +178,9 @@ func (g *Game) Update(screen *ebiten.Image) error {
 
 func cleanup(player string) {
 	if player == "ONE" && playerTwoConn != nil {
-		playerTwoConn.Close()
+		playerTwoConn.CloseHandler()(1006, "Player disconnected")
 	} else if playerOneConn != nil {
-		playerOneConn.Close()
+		playerOneConn.CloseHandler()(1006, "Player disconnected")
 	}
 
 	playerOneConn = nil
@@ -190,8 +190,7 @@ func cleanup(player string) {
 
 // Draw updates the game screen elements drawn
 func (g *Game) Draw(screen *ebiten.Image) error {
-
-	if playerOneConn != nil && playerTwoConn != nil {
+	if playerOneConn != nil && playerOneConn.Conn != nil && playerTwoConn != nil && playerTwoConn.Conn != nil {
 		playerOneConn.WriteJSON(&fiber.Map{
 			"type":      "FRAME",
 			"playerOne": 300 - int(g.Player1.Y),
@@ -293,11 +292,8 @@ func runServer() {
 		for {
 			if mt, msg, err = c.ReadMessage(); err != nil {
 				log.Println("read:", err)
-
-				if websocket.IsCloseError(err) {
-					cleanup(player)
-				}
-
+				cleanup(player)
+				gameState.reset()
 				break
 			}
 
