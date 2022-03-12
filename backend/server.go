@@ -29,7 +29,7 @@ func main() {
 		return c.SendString("Done!")
 	})
 
-	app.Get("/ws/:id", websocket.New(func(c *websocket.Conn) {
+	app.Get("/game", websocket.New(func(c *websocket.Conn) {
 		// c.Locals is added to the *websocket.Conn
 		log.Println(c.Locals("allowed"))  // true
 		log.Println(c.Params("id"))       // 123
@@ -59,7 +59,7 @@ func main() {
 
 	}))
 
-	log.Fatal(app.Listen(":3000"))
+	log.Fatal(app.Listen(":8000"))
 	// Access the websocket server: ws://localhost:3000/ws/123?v=1.0
 	// https://www.websocket.org/echo.html
 }
