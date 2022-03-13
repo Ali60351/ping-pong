@@ -8,7 +8,8 @@ import (
 	"github.com/gofiber/websocket/v2"
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/inpututil"
-	"github.com/jtestard/go-pong/pong"
+
+	"ping-pong/pong"
 )
 
 // Game is the structure of the game state
