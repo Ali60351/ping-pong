@@ -17,57 +17,59 @@ const Game = () => {
 
     const [player, setPlayer] = useState<null | 'ONE' | 'TWO'>(null);
     const [ready, setReady] = useState(false);
+    const socket = useMemo(() => new WebSocket('ws://localhost:8000/game'), []);
 
     const closeHandler = useCallback(() => {
         dispatch(updateStatus('Unexpected error. Please restart game!'));
     }, [dispatch]);
 
-    const socket = useMemo(() => {
-        let ws = new WebSocket('ws://localhost:8000/game');
+    const openHandler = useCallback(() => {
+        socket.addEventListener('close', closeHandler);
+    }, [socket, closeHandler]);
 
-        ws.addEventListener('error', event => {
-            if (ws.readyState === 3) {
-                dispatch(updateStatus('Unable to connect!'));
+    const errorHandler = useCallback(() => {
+        if (socket.readyState === 3) {
+            dispatch(updateStatus('Unable to connect!'));
+        }
+    }, [socket, dispatch]);
+
+    const messageHandler = useCallback((event: MessageEvent<any>) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === 'INIT') {
+            if (data.playerCount === 1) {
+                setPlayer('ONE');
+            } else if (data.playerCount === 2) {
+                setPlayer('TWO');
+            } else {
+                alert('Server is busy!');
             }
-        })
-
-        ws.addEventListener('open', () => {
-            ws.addEventListener('close', closeHandler)
-        })
-
-        ws.addEventListener('message', function (event) {
-            const data = JSON.parse(event.data);
-
-            if (data.type === 'INIT') {
-                if (data.playerCount === 1) {
-                    setPlayer('ONE');
-                } else if (data.playerCount === 2) {
-                    setPlayer('TWO');
-                } else {
-                    alert('Server is busy!');
-                }
-            } else if (data.type === 'READY') {
-                setReady(true);
-                dispatch(updateStatus(READY_MESSAGE));
-            } else if (data.type === 'FRAME') {
-                const { playerOne, playerTwo, ball, score } = data;
-                dispatch(updateGameState({ playerOne, playerTwo, ball, score }));
-            } else if (data.type === 'STATUS') {
-                dispatch(updateStatus(data.message));
-            }
-        });
-
-        return ws;
-    }, [dispatch, closeHandler]);
+        } else if (data.type === 'READY') {
+            setReady(true);
+            dispatch(updateStatus(READY_MESSAGE));
+        } else if (data.type === 'FRAME') {
+            const { playerOne, playerTwo, ball, score } = data;
+            dispatch(updateGameState({ playerOne, playerTwo, ball, score }));
+        } else if (data.type === 'STATUS') {
+            dispatch(updateStatus(data.message));
+        }
+    }, [dispatch]);
 
     useEffect(() => {
+        socket.addEventListener('error', errorHandler);
+        socket.addEventListener('open', openHandler);
+        socket.addEventListener('message', messageHandler);
+
         return () => {
-            if (socket) {
-                socket.removeEventListener('close', closeHandler);
-                socket.close()
+            socket.removeEventListener('error', errorHandler);
+            socket.removeEventListener('open', openHandler);
+            socket.removeEventListener('message', messageHandler);
+
+            if (socket && socket.readyState !== 3) {
+                socket.close();
             }
         }
-    }, [socket, closeHandler]);
+    }, [errorHandler, closeHandler, openHandler, messageHandler, socket]);
 
     const { playerOneY, playerTwoY, ballPosition, score, status } = gameState;
 
