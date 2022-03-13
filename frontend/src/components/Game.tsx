@@ -86,8 +86,8 @@ const Game = () => {
                 />
             }
             <ambientLight />
-            <Paddle position={[-340, playerOneY, 0]} isPlayer={player === 'TWO'} />
-            <Paddle position={[340, playerTwoY, 0]} isPlayer={player === 'ONE'} />
+            <Paddle position={[340, playerTwoY, 0]} isPlayer={player === 'TWO'} />
+            <Paddle position={[-340, playerOneY, 0]} isPlayer={player === 'ONE'} />
             <Ball position={[...ballPosition, 0]} />
         </Canvas>
         </div>
