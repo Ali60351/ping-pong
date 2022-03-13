@@ -36,11 +36,6 @@ const gameSlice = createSlice({
     },
 })
 
-// Extract the action creators object and the reducer
 const { actions, reducer } = gameSlice
-
-// Extract and export each action creator by name
 export const { updateGameState, updateStatus } = actions
-
-// Export the reducer, either as a default or named export
 export default reducer

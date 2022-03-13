@@ -247,7 +247,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 func launchGame() {
 	gameState = NewGame()
 
-	ebiten.SetMaxTPS(30)
+	ebiten.SetMaxTPS(40)
 	ebiten.SetRunnableOnUnfocused(true)
 
 	if err := ebiten.RunGame(gameState); err != nil {
