@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
@@ -256,6 +257,12 @@ func launchGame() {
 }
 
 func runServer() {
+	port := os.Getenv("PORT")
+
+	if port == "" {
+		port = "8000"
+	}
+
 	app := fiber.New()
 
 	app.Use("/ws", func(c *fiber.Ctx) error {
@@ -366,7 +373,7 @@ func runServer() {
 
 	}))
 
-	log.Fatal(app.Listen(":8000"))
+	log.Fatal(app.Listen(":" + port))
 }
 
 func main() {
