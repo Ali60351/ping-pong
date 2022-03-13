@@ -40,8 +40,6 @@ var playerTwoConn *websocket.Conn
 
 var gameState *Game
 
-var playerCount int = 0
-
 // NewGame creates an initializes a new game
 func NewGame() *Game {
 	g := &Game{}
@@ -211,7 +209,6 @@ func cleanup(player string) {
 
 	playerOneConn = nil
 	playerTwoConn = nil
-	playerCount = 0
 }
 
 // Draw updates the game screen elements drawn
@@ -259,6 +256,7 @@ func launchGame() {
 
 func runServer() {
 	port := os.Getenv("PORT")
+	playerCount := 0
 
 	if port == "" {
 		port = "8000"
@@ -310,6 +308,8 @@ func runServer() {
 			"playerCount": playerCount,
 		})
 
+		log.Print("Player Count:", playerCount)
+
 		if playerCount == 2 {
 			readyStatusData := &fiber.Map{
 				"type": "READY",
@@ -321,19 +321,19 @@ func runServer() {
 
 		// websocket.Conn bindings https://pkg.go.dev/github.com/fasthttp/websocket?tab=doc#pkg-index
 		var (
-			mt  int
+			_   int
 			msg []byte
 			err error
 		)
 		for {
-			if mt, msg, err = c.ReadMessage(); err != nil {
+			if _, msg, err = c.ReadMessage(); err != nil {
 				log.Println("read:", err)
 				cleanup(player)
+				playerCount = 0
 				gameState.reset(false)
 				break
 			}
 
-			log.Print(mt)
 			log.Printf("recv: %s", msg)
 
 			switch string(msg) {
