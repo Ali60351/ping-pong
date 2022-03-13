@@ -179,12 +179,12 @@ func (g *Game) Update(screen *ebiten.Image) error {
 			if playerOneConn != nil && playerOneConn.Conn != nil && playerTwoConn != nil && playerTwoConn.Conn != nil {
 				playerOneConn.WriteJSON(&fiber.Map{
 					"type":    "STATUS",
-					"message": "Game Over!",
+					"message": "GAME OVER! Press SPACE to restart!",
 				})
 
 				playerTwoConn.WriteJSON(&fiber.Map{
 					"type":    "STATUS",
-					"message": "Game Over!",
+					"message": "GAME OVER! Press SPACE to restart!",
 				})
 			}
 		}
