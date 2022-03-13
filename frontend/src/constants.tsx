@@ -21,5 +21,5 @@ export const CODES: { [key in AcceptedKeys]: KeyCodes } = {
 
 export const READY_MESSAGE = 'Press SPACE to start!';
 
-export const SERVER_URL = 'ws://quickstart-image-odbzzibkkq-uc.a.run.app/game';
+export const SERVER_URL = 'wss://quickstart-image-odbzzibkkq-uc.a.run.app/game';
 // export const SERVER_URL = 'ws://localhost:8000/game';
