@@ -9,7 +9,7 @@ import InputHandler from './InputHandler';
 import gameSelector from '../reducers/gameSelector';
 import { updateGameState, updateStatus } from '../reducers/gameReducer';
 import styles from './Game.module.css';
-import { READY_MESSAGE } from '../constants';
+import { READY_MESSAGE, SERVER_URL } from '../constants';
 
 const Game = () => {
     const dispatch = useDispatch();
@@ -17,7 +17,7 @@ const Game = () => {
 
     const [player, setPlayer] = useState<null | 'ONE' | 'TWO'>(null);
     const [ready, setReady] = useState(false);
-    const socket = useMemo(() => new WebSocket('ws://localhost:8000/game'), []);
+    const socket = useMemo(() => new WebSocket(SERVER_URL), []);
 
     const closeHandler = useCallback(() => {
         dispatch(updateStatus('Unexpected error. Please restart game!'));
