@@ -1,14 +1,18 @@
-FROM golang:1.16-alpine
+FROM golang:1.17.8-bullseye
 
-RUN apt install -y xorg-dev xvfb
+RUN apt-get update
+RUN apt-get install -y xorg-dev xvfb
 
 WORKDIR /
 
-# COPY go.mod ./
-# COPY go.sum ./
-RUN go mod download
+COPY go.mod .
+COPY go.sum .
 
-# COPY *.go ./
+# RUN go mod download
+
+RUN ls -a
+
+COPY . .
 
 RUN go build -o docker-server
 
@@ -17,4 +21,4 @@ EXPOSE 8080
 ENV HOST=0.0.0.0
 ENV PORT=8080
 
-CMD [ "xvfb-run", "--auto-servernum", "--server-num=1", "./docker-server" ]
+CMD xvfb-run --auto-servernum --server-num=1 ./docker-server
